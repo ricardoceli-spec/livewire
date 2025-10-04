@@ -1,0 +1,29 @@
+Copia todo el proyecto menos public/ a una carpeta por fuera de htdocs (ejemplo /laravel).
+Copia solo el contenido de public/ dentro de /htdocs.
+
+/htdocs   <-- aquí va el contenido de la carpeta "public"
+/laravel  <-- aquí puedes subir el resto del proyecto (app, routes, vendor, etc.)
+------------------------------------
+1. Abre la terminal
+Si usas Windows → abre CMD o PowerShell.
+En tu PC, instala las dependencias con:
+
+composer install --optimize-autoloader --no-dev
+npm install && npm run build   # (si usas assets de Vite)
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+------------------------------------
+2. Ajustar la estructura
+
+Abre public/index.php y edita estas rutas:
+
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+👉 Cámbialas a la ubicación real (por ejemplo, si pusiste Laravel en /laravel):
+
+require __DIR__.'/../laravel/vendor/autoload.php';
+$app = require_once __DIR__.'/../laravel/bootstrap/app.php';
+------------------------------------
+Configurar .env

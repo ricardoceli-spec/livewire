@@ -1,0 +1,5 @@
+ejecutar cmd
+
+php artisan serve
+
+Si quieres compilar en producción: npm run build
