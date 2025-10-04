@@ -1,46 +1,15 @@
 services:
   - type: web
     name: livewire-app
-    env: php
+    env: docker
     plan: free
-    buildCommand: |
-      composer install --optimize-autoloader --no-dev
-      php artisan key:generate
-      php artisan migrate --force
-    startCommand: |
-      php artisan serve --host 0.0.0.0 --port 10000
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: false
       - key: APP_KEY
-        sync: false   # You will add this manually in the Render dashboard
-      - key: APP_URL
-        value: https://livewire-app.onrender.com
-      - key: DB_CONNECTION
-        value: mysql
-      - key: DB_HOST
-        fromDatabase:
-          name: livewire-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: livewire-db
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: livewire-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: livewire-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: livewire-db
-          property: password
-
-databases:
-  - name: livewire-db
-    plan: free
+        sync: false   # lo agregas luego en el dashboard de Render
