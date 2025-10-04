@@ -4,7 +4,7 @@
 #
 
 app = 'livewire1'
-primary_region = 'scl'
+primary_region = 'gru'
 console_command = 'php /var/www/html/artisan tinker'
 
 [build]
