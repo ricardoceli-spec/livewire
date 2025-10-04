@@ -1,37 +1,36 @@
-# syntax = docker/dockerfile:experimental
+FROM fideloper/fly-laravel:8.2 as base
 
-ARG PHP_VERSION=8.2
-ARG NODE_VERSION=18
-FROM fideloper/fly-laravel:${PHP_VERSION} as base
-
-ARG PHP_VERSION
-
-LABEL fly_launch_runtime="laravel"
-
-# Copiar el código de la aplicación
+# Copiar el código
 COPY . /var/www/html
+WORKDIR /var/www/html
 
-# Instalar dependencias de PHP con Composer
-RUN composer install --optimize-autoloader --no-dev \
-    && mkdir -p storage/logs \
-    && php artisan optimize:clear \
-    && chown -R www-data:www-data /var/www/html \
-    && echo "MAILTO=\"\"\n* * * * * www-data /usr/bin/php /var/www/html/artisan schedule:run" > /etc/cron.d/laravel \
-    && sed -i='' '/->withMiddleware(function (Middleware \$middleware) {/a\
-        \$middleware->trustProxies(at: "*");\
-    ' bootstrap/app.php \
-    && if [ -d .fly ]; then cp .fly/entrypoint.sh /entrypoint; chmod +x /entrypoint; fi
+#  Instalar dependencias de PHP
+RUN composer install --optimize-autoloader --no-dev
+
+#  Crear carpetas necesarias y limpiar cache
+RUN mkdir -p storage/logs
+RUN php artisan optimize:clear
+
+# Ajustar permisos
+RUN chown -R www-data:www-data /var/www/html
+
+# Configurar cron job
+RUN echo "MAILTO=\"\"\n* * * * * www-data /usr/bin/php /var/www/html/artisan schedule:run" > /etc/cron.d/laravel
+
+#  Ajustar middleware con sed (compatible)
+RUN sed -i '/->withMiddleware(function (Middleware \$middleware) {/a \$middleware->trustProxies(at: "*");' bootstrap/app.php
+
+#  Copiar entrypoint si existe
+RUN if [ -d .fly ]; then cp .fly/entrypoint.sh /entrypoint && chmod +x /entrypoint; fi
 
 # ------------------------------------------------------------
-# Multi-stage build: Generación de assets con Node
+# Multi-stage build para Node (assets)
 # ------------------------------------------------------------
-FROM node:${NODE_VERSION} as node_assets
-
+FROM node:18 as node_assets
 WORKDIR /app
 COPY . .
 COPY --from=base /var/www/html/vendor /app/vendor
 
-# Instalar dependencias de Node y construir assets
 RUN if [ -f "vite.config.js" ]; then ASSET_CMD="build"; else ASSET_CMD="production"; fi \
     && if [ -f "yarn.lock" ]; then \
         yarn install --frozen-lockfile && yarn $ASSET_CMD; \
@@ -47,11 +46,8 @@ RUN if [ -f "vite.config.js" ]; then ASSET_CMD="build"; else ASSET_CMD="producti
 # Imagen final
 # ------------------------------------------------------------
 FROM base
-
-# Copiar los assets generados
 COPY --from=node_assets /app/public /var/www/html/public-npm
 
-# Mover assets al directorio público y asignar permisos
 RUN rsync -ar /var/www/html/public-npm/ /var/www/html/public/ \
     && rm -rf /var/www/html/public-npm \
     && chown -R www-data:www-data /var/www/html/public
